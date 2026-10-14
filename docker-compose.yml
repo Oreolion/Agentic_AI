@@ -1,21 +1,38 @@
 services:
-  mongodb:
-    image: mongo
-    ports:
-      - 27017:27017
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: admin
-    volumes:
-      - mongodb_data:/data/db
+  oracle-free:
+    image: container-registry.oracle.com/database/free:latest
+    container_name: oracle-free
+    restart: unless-stopped
 
-  vector-db:
-    image: qdrant/qdrant
     ports:
-      - 6333:6333
+      - "1521:1521"
+
+    environment:
+      ORACLE_PWD: "YourPassword123"
+
+    volumes:
+      - oracle-data:/opt/oracle/oradata
 
 volumes:
-  mongodb_data:
+  oracle-data:
+    name: oracle-data
+#   mongodb:
+#     image: mongo
+#     ports:
+#       - 27017:27017
+#     environment:
+#       MONGO_INITDB_ROOT_USERNAME: admin
+#       MONGO_INITDB_ROOT_PASSWORD: admin
+#     volumes:
+#       - mongodb_data:/data/db
+
+#   vector-db:
+#     image: qdrant/qdrant
+#     ports:
+#       - 6333:6333
+
+# volumes:
+#   mongodb_data:
 
 
 

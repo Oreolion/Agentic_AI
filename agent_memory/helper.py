@@ -14,7 +14,7 @@ import json as json_lib
 from datetime import datetime
 import inspect
 import uuid
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, overload, cast
 from pydantic import BaseModel
 
 
@@ -32,6 +32,15 @@ def suppress_warnings():
     # HuggingFace / transformers log messages
     logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
     logging.getLogger("transformers").setLevel(logging.ERROR)
+
+# Default LLM model for all helper LLM calls. Override via the AGENT_LLM_MODEL
+# environment variable (e.g. when using an OpenAI-compatible endpoint such as
+# NVIDIA NIM instead of OpenAI).
+# NOTE: load .env BEFORE reading it — helper is typically imported before the
+# caller's load_env() runs, so import-time reads would otherwise miss .env.
+_ = load_dotenv(find_dotenv())
+DEFAULT_LLM_MODEL = os.getenv("AGENT_LLM_MODEL", "gpt-5")
+
 
 def get_openai_api_key():
     load_env()
@@ -408,7 +417,7 @@ def safe_create_index(conn, vs, idx_name):
             raise
 
 
-def cleanup_vector_memory(conn, drop_tables: bool = False, table_prefix: str = None):
+def cleanup_vector_memory(conn, drop_tables: bool = False, table_prefix: str | None = None):
     """
     Clean up vector indexes and optionally tables to free up vector memory space.
     
@@ -579,7 +588,7 @@ class MemoryManager:
     
     # ==================== CONVERSATIONAL MEMORY (SQL) ====================
     
-    def write_conversational_memory(self, content: str, role: str, thread_id: str) -> str:
+    def write_conversational_memory(self, content: str, role: str, thread_id: str) -> str | None:
         """Store a message in conversation history."""
         thread_id = str(thread_id)
         with self.conn.cursor() as cur:
@@ -874,7 +883,7 @@ If none: []'''
 
         try:
             response = llm_client.chat.completions.create(
-                model="gpt-5",
+                model=DEFAULT_LLM_MODEL,
                 messages=[{"role": "user", "content": prompt}],
                 max_completion_tokens=2000
             )
@@ -891,7 +900,7 @@ If none: []'''
         except:
             return []
     
-    def write_entity(self, name: str, entity_type: str, description: str, llm_client=None, text: str = None):
+    def write_entity(self, name: str, entity_type: str, description: str, llm_client=None, text: str | None = None):
         """Store an entity OR extract and store entities from text."""
         if text and llm_client:
             # Extract and store entities from text
@@ -1172,7 +1181,7 @@ class Toolbox:
     find relevant tools based on natural language queries.
     """
     
-    def __init__(self, memory_manager, llm_client, embedding_function, model: str = "gpt-5"):
+    def __init__(self, memory_manager, llm_client, embedding_function, model: str = DEFAULT_LLM_MODEL):
         """
         Initialize the Toolbox.
         
@@ -1196,7 +1205,7 @@ class Toolbox:
         if hasattr(self.embedding_function, 'embed_query'):
             return self.embedding_function.embed_query(text)
         elif callable(self.embedding_function):
-            return self.embedding_function(text)
+            return cast(list[float], self.embedding_function(text))
         else:
             raise ValueError("embedding_function must be callable or have embed_query method")
     
@@ -1313,6 +1322,14 @@ class Toolbox:
                 return cur.fetchone()[0] > 0
         except Exception:
             return False
+
+    @overload
+    def register_tool(
+        self, func: None = None, augment: bool = False
+    ) -> Callable[[Callable], str]: ...
+
+    @overload
+    def register_tool(self, func: Callable, augment: bool = False) -> str: ...
 
     def register_tool(
         self, func: Optional[Callable] = None, augment: bool = False
@@ -1470,7 +1487,7 @@ def register_common_tools(
     from datetime import timezone
     
     # Create the ArXiv retriever
-    arxiv_retriever = ArxivRetriever(
+    arxiv_retriever = ArxivRetriever(  # pyright: ignore[reportCallIssue] -- langchain fills arxiv_search/arxiv_exceptions via pydantic validator
         load_max_docs=8,
         get_full_documents=False,
         doc_content_chars_max=4000
@@ -1628,7 +1645,7 @@ MODEL_TOKEN_LIMITS = {
 }
 
 
-def calculate_context_usage(context: str, model: str = "gpt-5") -> dict:
+def calculate_context_usage(context: str, model: str = DEFAULT_LLM_MODEL) -> dict:
     """Calculate context window usage as percentage."""
     estimated_tokens = len(context) // 4  # ~4 chars per token
     max_tokens = MODEL_TOKEN_LIMITS.get(model, 128000)
@@ -1636,7 +1653,7 @@ def calculate_context_usage(context: str, model: str = "gpt-5") -> dict:
     return {"tokens": estimated_tokens, "max": max_tokens, "percent": round(percentage, 1)}
 
 
-def monitor_context_window(context: str, model: str = "gpt-5") -> dict:
+def monitor_context_window(context: str, model: str = DEFAULT_LLM_MODEL) -> dict:
     """
     Monitor the current context window and return capacity utilization.
     
@@ -1663,7 +1680,7 @@ def summarise_context_window(
     content: str,
     memory_manager,
     llm_client,
-    model: str = "gpt-5",
+    model: str = DEFAULT_LLM_MODEL,
     thread_id: str | None = None,
 ) -> dict:
     """
@@ -1927,7 +1944,7 @@ def register_summary_tools(toolbox, memory_manager, llm_client):
         dict of registered tool functions
     """
     
-    def expand_summary(summary_id: str, thread_id: str = None) -> str:
+    def expand_summary(summary_id: str, thread_id: str | None = None) -> str:
         """
         Expand a summary reference to retrieve the original conversations.
         
@@ -1942,7 +1959,7 @@ def register_summary_tools(toolbox, memory_manager, llm_client):
 
 {original_conversations}"""
 
-    def summarize_and_store(text: str = "", thread_id: str = None) -> str:
+    def summarize_and_store(text: str = "", thread_id: str | None = None) -> str:
         """
         Summarize content and store it in Summary Memory.
 

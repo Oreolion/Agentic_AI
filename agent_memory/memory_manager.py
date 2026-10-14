@@ -64,7 +64,7 @@ for table in ALL_TABLES:
 database_connection.commit()
 
 
-Create Conversational Memory Table
+# Create Conversational Memory Table
 
 # This function below creates a SQL table to store chat history.
 # Unlike vector stores, conversational memory uses a traditional table because we need exact retrieval by thread ID (not similarity search).
@@ -320,4 +320,3 @@ for paper in islice(ds, 100):
     
 results = memory_manager.read_knowledge_base(query="space exploration")
 print(results)
-
