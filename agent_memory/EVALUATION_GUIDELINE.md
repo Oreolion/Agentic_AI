@@ -1,6 +1,6 @@
 # Memory Agent Evaluation Guideline and Pipeline
 
-Version: 2.0 | Updated: 2026-10-14 | Status: documentation and proposed pipeline; implementation deferred
+Version: 2.1 | Updated: 2026-10-14 | Status: offline artifact checkpoint implemented; live integration and semantic evaluation outstanding
 
 ## 1. Purpose and scope
 
@@ -8,7 +8,7 @@ Evaluate whether the research agent retrieves the right evidence, takes the righ
 
 This guide is based on the current [memory_agent.py](memory_agent.py) and its supporting [helper.py](helper.py). The system uses Oracle Database and OracleVS, local sentence-transformer embeddings, an NVIDIA-hosted model through an OpenAI-compatible client, arXiv, and optional Tavily search. PostgreSQL and pgvector are not the backend in the inspected code.
 
-The deliverable is a specification with an annotated starter dataset, metrics, rubrics, pipeline stages, tool choices, and implementation requirements. No runtime evaluation or reflection implementation is authorized by this document. All thresholds below are initial project targets, not measured results or published benchmark standards. Section 14 records the industry-convention note and where existing tools fit; Section 15 defines the low-cost execution and scoring strategy.
+The guide specifies annotated datasets, metrics, rubrics, pipeline stages, tool choices, and implementation requirements. The initial offline artifact runner and pytest suite are now implemented; see the [checkpoint README](evaluation/README.md) for commands, narrow supported contracts, and outstanding work. This checkpoint does not execute the agent, Oracle, judges, or reflection. All thresholds below are initial project targets, not measured agent results or published benchmark standards. Section 14 records the industry-convention note and where existing tools fit; Section 15 defines the low-cost execution and scoring strategy.
 
 ### 1.1 What the current demo establishes
 
@@ -855,7 +855,7 @@ The release report should show:
 
 ## 12. Implementation plan for the evaluation harness
 
-The following describes a proposed complete harness. Standalone preliminary scorer/test files may exist under `evaluation/`; their presence does not establish working runtime adapters, an agent evaluation result, or an authorized implementation. Implementation is deferred. The prototype has not been accepted or run as part of this documentation update.
+The following describes the complete target harness. The first checkpoint under `evaluation/` implements strict input loading, eight artifact/probe checker kinds, a 14-case annotated synthetic dataset, local reports, and offline pytest verification. It does not establish working runtime adapters, full component coverage, an agent quality result, or successful end-to-end evaluation. Missing observations and open-ended semantic review remain pending. See the [checkpoint README](evaluation/README.md) for the exact boundary.
 
 ```text
 agent_memory/
@@ -952,7 +952,7 @@ The default future test command must collect only offline tests and must not imp
 
 Use parametrization to cover empty/malformed/long/duplicate/foreign-thread cases without maintaining separate near-identical test functions. Share immutable document/embedding fixtures; create distinct mutable database state per scenario. Assert exact state invariants with normal Python assertions. Encode known bugs as tracked failing baseline results or narrowly documented strict xfails; a release must not count xfail/skipped coverage as passing required contracts.
 
-Run scorer tests separately from agent tests. A scorer can correctly reject a synthetic false-save example while the live agent still falsely claims saves. Preliminary files under `evaluation/` are unaccepted scorer scaffolding, not evidence that C01-C20 or E01-E08 have passed.
+Run scorer tests separately from agent tests. A scorer can correctly reject a synthetic false-save example while the live agent still falsely claims saves. Files under `evaluation/` now provide the first tested offline artifact checkpoint, not evidence that all C01-C20 or E01-E08 have passed. Live capture and end-to-end integration remain outstanding.
 
 ### 14.4 Optional LangSmith integration
 

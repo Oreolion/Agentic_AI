@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "dataset_id": "memory-offline-starter-v1",
+  "cases": [
+    {
+      "case_id": "recall-first", "component_ids": ["C16", "C19"], "kind": "exact_recall",
+      "description": "Compare an extracted quote with the original first question; preserve wording and case.",
+      "expected": {"quote": "Can you get me the paper MemGPT"}
+    },
+    {
+      "case_id": "summary-snapshot", "component_ids": ["C03", "C15", "C16"], "kind": "summary_snapshot",
+      "description": "Only the original snapshot is tagged; content and ownership survive a concurrent insert.",
+      "expected": {
+        "source_ids": ["m1", "m2"], "thread_id": "eval-A",
+        "source_hashes": {"m1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "m2": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}
+      }
+    },
+    {
+      "case_id": "paper-save", "component_ids": ["C07", "C19"], "kind": "paper_write",
+      "description": "A success claim needs the exact paper/version/chunk manifest, without duplicate identities.",
+      "expected": {"chunks": [
+        {"source_id": "fixture-paper", "version": "v2", "chunk_id": "0", "content_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"},
+        {"source_id": "fixture-paper", "version": "v2", "chunk_id": "1", "content_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"}
+      ]}
+    },
+    {
+      "case_id": "retrieval-evidence", "component_ids": ["C08"], "kind": "retrieval",
+      "description": "Compute relevance metrics using annotated IDs, with no model judge.",
+      "expected": {"relevant_ids": ["a2"], "k": 3, "min_recall": 1, "min_precision": 0.5}
+    },
+    {
+      "case_id": "context-boundary", "component_ids": ["C17"], "kind": "context_budget",
+      "description": "The supplied complete input-token count plus output reserve fits exactly; current request and correction remain.",
+      "expected": {"window_tokens": 128000, "required_ids": ["current-question", "latest-correction"]}
+    },
+    {
+      "case_id": "tool-protocol", "component_ids": ["C10", "C11", "C18"], "kind": "tool_trace",
+      "description": "Every call has one matching result, names stay in the allowlist, and call count stays bounded; this does not prove task success.",
+      "expected": {"allowed_tools": ["arxiv_search_candidates", "fetch_and_save_paper_to_kb_db", "expand_summary"], "required_tools": ["arxiv_search_candidates", "fetch_and_save_paper_to_kb_db"], "max_calls": 3}
+    },
+    {
+      "case_id": "policy-success", "component_ids": ["C20"], "kind": "controller",
+      "description": "Routine success never needs a separate reflection call.",
+      "expected": {"action": "continue"}
+    },
+    {
+      "case_id": "policy-permanent", "component_ids": ["C11", "C20"], "kind": "controller",
+      "description": "A known permanent error changes strategy or reports a blocker without reflection.",
+      "expected": {"action": "change_strategy_or_report"}
+    },
+    {
+      "case_id": "policy-retry-cap", "component_ids": ["C01", "C11", "C20"], "kind": "controller",
+      "description": "SDK and application attempts share a total cap.",
+      "expected": {"action": "report_blocker"}
+    },
+    {
+      "case_id": "policy-scope", "component_ids": ["C11", "C20"], "kind": "controller",
+      "description": "A scope denial overrides even a reported success.",
+      "expected": {"action": "deny_scope"}
+    },
+    {
+      "case_id": "policy-reflection-off", "component_ids": ["C20"], "kind": "controller",
+      "description": "Unknown strategy uses the next ordinary actor turn when reflection is disabled.",
+      "expected": {"action": "actor_uses_validated_observation"}
+    },
+    {
+      "case_id": "policy-reflection-eligible", "component_ids": ["C20"], "kind": "controller",
+      "description": "Only explicit opt-in, available budget, and an unresolved strategy allow the optional reflection decision.",
+      "expected": {"action": "reflect_once"}
+    },
+    {
+      "case_id": "policy-reflection-exhausted", "component_ids": ["C20"], "kind": "controller",
+      "description": "One optional reflection exhausts the per-request reflection allowance.",
+      "expected": {"action": "actor_uses_validated_observation"}
+    },
+    {
+      "case_id": "summary-semantics", "component_ids": ["C14", "C19"], "kind": "semantic_review",
+      "description": "Prose faithfulness remains pending until a semantic evaluator or human review is implemented; keyword presence is insufficient.",
+      "expected": {"required_facts": ["The backend is Oracle/OracleVS.", "The current budget is 12 dollars."]}
+    }
+  ]
+}

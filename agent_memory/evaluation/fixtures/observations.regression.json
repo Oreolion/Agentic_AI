@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "dataset_id": "memory-offline-starter-v1",
+  "provenance": "synthetic_fixture",
+  "records": {
+    "recall-first": {"quote": "Can you summarize MemGPT"},
+    "summary-snapshot": {
+      "tagged_ids": ["m1", "m2", "m3"], "preserved_ids": ["m1", "m2", "m3"],
+      "row_threads": {"m1": "eval-A", "m2": "eval-B", "m3": "eval-A"},
+      "preserved_hashes": {"m1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "m2": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}
+    },
+    "paper-save": {"claimed_success": true, "chunks": [
+      {"source_id": "fixture-paper", "version": "v2", "chunk_id": "0", "content_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"}
+    ]},
+    "retrieval-evidence": {"ranked_ids": ["astronomy-negative"]},
+    "context-boundary": {"input_tokens": 128000, "output_reserve": 1000, "included_ids": ["current-question"]},
+    "tool-protocol": {
+      "calls": [{"call_id": "call-1", "tool_name": "arxiv_search_candidates"}, {"call_id": "call-2", "tool_name": "unregistered_shell_tool"}],
+      "results": [{"call_id": "call-1", "status": "ok"}]
+    },
+    "policy-success": {"status": "ok"},
+    "policy-permanent": {"status": "permanent_error"},
+    "policy-retry-cap": {"status": "transient_error", "attempts_used": 2, "attempt_cap": 2},
+    "policy-scope": {"status": "ok", "scope_allowed": false},
+    "policy-reflection-off": {"status": "unknown", "ambiguous_strategy": true},
+    "policy-reflection-eligible": {"status": "unknown", "ambiguous_strategy": true, "adaptive_reflection_enabled": true, "reflection_budget_available": true},
+    "policy-reflection-exhausted": {"status": "unknown", "ambiguous_strategy": true, "adaptive_reflection_enabled": true, "reflection_budget_available": true, "reflection_calls_used": 1},
+    "summary-semantics": {"answer": "The backend is PostgreSQL and pgvector.", "evidence": ["fixture user correction: backend Oracle/OracleVS; budget now 12 dollars."]}
+  }
+}

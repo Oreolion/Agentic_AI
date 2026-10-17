@@ -38,6 +38,9 @@ def check_summary_snapshot(
     preserved_ids: Sequence[str],
     row_threads: Mapping[str, str],
     active_thread: str,
+    *,
+    source_hashes: Mapping[str, str] | None = None,
+    preserved_hashes: Mapping[str, str] | None = None,
 ) -> CheckResult:
     """Check one summary's snapshot membership, originals, and ownership."""
     source, tagged, preserved = set(source_ids), set(tagged_ids), set(preserved_ids)
@@ -52,6 +55,15 @@ def check_summary_snapshot(
         errors.append("original_messages_missing")
     if any(row_threads.get(row_id) != active_thread for row_id in source | tagged):
         errors.append("thread_ownership_mismatch")
+    if source_hashes is not None or preserved_hashes is not None:
+        if source_hashes is None or preserved_hashes is None:
+            raise ValueError("Both original and preserved content hashes are required")
+        if any(
+            row_id not in source_hashes
+            or source_hashes[row_id] != preserved_hashes.get(row_id)
+            for row_id in source
+        ):
+            errors.append("original_content_changed_or_missing")
     return CheckResult(not errors, tuple(errors))
 
 
@@ -123,12 +135,13 @@ def next_action(
     ambiguous_strategy: bool = False,
     adaptive_reflection_enabled: bool = False,
     reflection_budget_available: bool = False,
+    reflection_calls_used: int = 0,
 ) -> str:
     """Proposed cheap controller policy; not yet connected to call_agent.
 
     Attempt counts include SDK retries. No status grants new tool authority.
     """
-    if attempts_used < 0 or attempt_cap < 1:
+    if attempts_used < 0 or attempt_cap < 1 or reflection_calls_used < 0:
         raise ValueError("Invalid attempt budget")
     if not scope_allowed:
         return "deny_scope"
@@ -148,6 +161,9 @@ def next_action(
         return "report_blocker"
     if status != "unknown":
         raise ValueError(f"Unrecognized observation status: {status}")
-    if ambiguous_strategy and adaptive_reflection_enabled and reflection_budget_available:
+    if (
+        ambiguous_strategy and adaptive_reflection_enabled
+        and reflection_budget_available and reflection_calls_used == 0
+    ):
         return "reflect_once"
     return "actor_uses_validated_observation"
